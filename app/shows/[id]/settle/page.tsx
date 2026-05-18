@@ -71,9 +71,12 @@ export default async function SettlePage({
   });
   const grossSoFar = ticketSales.reduce((sum, t) => sum + t.gross, 0);
   const totalFees = ticketSales.reduce((sum, t) => sum + t.fees, 0);
+  const ticketsSold = ticketSales.reduce((sum, t) => sum + (t.qty ?? 0), 0);
   const totalExpenses = expenses
     .filter((e) => !e.absorbedByVenue)
     .reduce((sum, e) => sum + e.amount, 0);
+  const settlementExpenses =
+    settlement?.totalExpenses ?? totalExpenses;
 
   const disputedRecoups = recoups.filter((r) => r.status === "disputed");
   const isDisputed = settlement?.status === "disputed" || settlement?.status === "revised" || !!settlement?.disputedAt;
@@ -134,6 +137,11 @@ export default async function SettlePage({
         dealType={deal.dealType}
         signoffText={settlement?.signoffText ?? null}
         status={settlement?.status ?? null}
+        grossBoxOffice={grossSoFar}
+        platformFees={totalFees}
+        totalExpenses={settlementExpenses}
+        ticketsSold={ticketsSold}
+        capacity={data.venue?.capacity ?? 650}
       />
 
       <div className="space-y-6 mt-6">

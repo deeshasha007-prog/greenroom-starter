@@ -14,7 +14,13 @@ import type {
   SettlementIntelligenceResponse,
   ParsedField,
   Confidence,
+  ParsedDealFields,
 } from "@/lib/settlementIntelligence";
+import {
+  calculateVsDeal,
+  type VsDealFinancials,
+  type VsDealTerms,
+} from "@/lib/vsDealMath";
 
 export type SettlementIntelligenceProps = {
   dealNotesFreetext: string | null;
@@ -23,6 +29,11 @@ export type SettlementIntelligenceProps = {
   dealType: string;
   signoffText: string | null;
   status: string | null;
+  grossBoxOffice: number;
+  platformFees: number;
+  totalExpenses: number;
+  ticketsSold: number;
+  capacity: number;
 };
 
 const FIELD_LABELS: Record<string, string> = {
@@ -93,6 +104,79 @@ function ParsedFieldRow({
   );
 }
 
+
+function resolveVsDealTerms(
+  parsed: ParsedDealFields,
+  fallbacks: Pick<
+    SettlementIntelligenceProps,
+    "guaranteeAmount" | "percentage" | "dealType"
+  >,
+): VsDealTerms | null {
+  const guarantee =
+    parsed.guarantee.value ?? fallbacks.guaranteeAmount ?? null;
+  const base_pct =
+    parsed.base_percentage.value ?? fallbacks.percentage ?? null;
+
+  if (guarantee == null || base_pct == null) return null;
+
+  const is_vs_gross = parsed.deal_type.value === "vs_gross";
+
+  return {
+    guarantee,
+    base_pct,
+    ratchet_threshold: parsed.ratchet_threshold.value,
+    ratchet_pct: parsed.ratchet_percentage.value,
+    expense_cap: parsed.expense_cap.value,
+    is_vs_gross,
+  };
+}
+
+function VsDealCalculator({
+  financials,
+  terms,
+}: {
+  financials: VsDealFinancials;
+  terms: VsDealTerms;
+}) {
+  const result = calculateVsDeal(financials, terms);
+
+  if (!result) {
+    return (
+      <div className="rounded-lg border border-dashed border-ink-200/80 bg-canvas-soft/50 px-4 py-3 text-[12px] text-ink-400">
+        Vs deal calculator needs a guarantee and base percentage from the parser
+        or structured deal fields.
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="eyebrow text-[10px] text-ink-500 mb-1">Vs deal calculator</div>
+      <div className="text-[12px] text-ink-400 mb-4">
+        Step-by-step math using parsed deal terms and show financials
+      </div>
+      <div className="space-y-4">
+        {result.steps.map((step) => (
+          <div
+            key={step.step}
+            className="rounded-lg border border-ink-200/60 bg-white px-4 py-3"
+          >
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-ink-500">
+              Step {step.step} · {step.label}
+            </div>
+            <div className="text-[12.5px] text-ink-600 mt-1.5 leading-relaxed font-mono tabular">
+              {step.calculation}
+            </div>
+            <div className="text-[14px] font-semibold font-mono tabular text-brand-700 mt-2">
+              {step.result}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function SettlementIntelligence(props: SettlementIntelligenceProps) {
   const [state, setState] = useState<
     | { kind: "loading" }
@@ -157,10 +241,23 @@ export function SettlementIntelligence(props: SettlementIntelligenceProps) {
     props.status,
   ]);
 
+  const financials: VsDealFinancials = {
+    gross_box_office: props.grossBoxOffice,
+    platform_fees: props.platformFees,
+    total_expenses: props.totalExpenses,
+    tickets_sold: props.ticketsSold,
+    capacity: props.capacity,
+  };
+
   const showStatusFlag =
     state.kind === "success" &&
     props.status === "disputed" &&
     state.data.signoff.sentiment === "approved";
+
+  const vsTerms =
+    state.kind === "success"
+      ? resolveVsDealTerms(state.data.parsed, props)
+      : null;
 
   return (
     <Card accent="brand" className="mt-6">
@@ -247,9 +344,9 @@ export function SettlementIntelligence(props: SettlementIntelligenceProps) {
               </div>
             </div>
 
-            <div className="rounded-lg border border-dashed border-ink-200/80 bg-canvas-soft/50 px-4 py-3 text-[12px] text-ink-400">
-              Vs deal calculator — coming in the next step
-            </div>
+            {vsTerms && (
+              <VsDealCalculator financials={financials} terms={vsTerms} />
+            )}
           </div>
         )}
       </CardContent>

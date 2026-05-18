@@ -6,7 +6,7 @@ import type {
   SignoffSentiment,
 } from "@/lib/settlementIntelligence";
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-sonnet-4-5";
 const MAX_TOKENS = 1000;
 
 function buildPrompt(body: SettlementIntelligenceRequest): string {
