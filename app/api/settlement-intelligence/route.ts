@@ -51,7 +51,9 @@ Return ONLY valid JSON (no markdown fences) matching this exact shape:
 Rules:
 - Prefer deal_notes_freetext over structured fields when they conflict; note conflicts in reason.
 - Percentages as decimals (0.85 = 85%).
-- ratchet_threshold as fraction of capacity (0.9 = 90% sell-through).
+- ratchet_threshold as fraction of capacity (0.9 = 90% sell-through).. If the deal has a dollar-based walkout pot instead of a 
+capacity ratchet, put that dollar amount in walkout_point 
+and return null for ratchet_threshold.
 - signoff sentiment "approved" if text is clearly positive/agreeing even when status is disputed.
 - If terms are missing, use null value and explain in reason.`;
 }

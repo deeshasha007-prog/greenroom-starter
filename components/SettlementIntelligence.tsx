@@ -183,6 +183,13 @@ export function SettlementIntelligence(props: SettlementIntelligenceProps) {
     | { kind: "error"; message: string }
     | { kind: "success"; data: SettlementIntelligenceResponse }
   >({ kind: "loading" });
+  const [showDemoFinalizeNote, setShowDemoFinalizeNote] = useState(false);
+
+  useEffect(() => {
+    if (!showDemoFinalizeNote) return;
+    const timer = setTimeout(() => setShowDemoFinalizeNote(false), 3000);
+    return () => clearTimeout(timer);
+  }, [showDemoFinalizeNote]);
 
   useEffect(() => {
     let cancelled = false;
@@ -306,11 +313,20 @@ export function SettlementIntelligence(props: SettlementIntelligenceProps) {
                     <button
                       type="button"
                       className="text-[12px] font-medium text-brand-700 hover:text-brand-800 hover:underline"
-                      disabled
-                      title="Demo only — no database write"
+                      onClick={() => setShowDemoFinalizeNote(true)}
                     >
                       Mark as Finalized (demo)
                     </button>
+                    {showDemoFinalizeNote && (
+                      <div
+                        role="status"
+                        className="mt-2 rounded-md border border-brand-200/80 bg-brand-50/60 px-3 py-2.5 text-[12px] text-ink-700 leading-relaxed"
+                      >
+                        In production this would update the settlement status to
+                        finalized and notify the agent. Database write not
+                        implemented in this demo.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
